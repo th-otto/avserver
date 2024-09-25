@@ -1,0 +1,5 @@
+*.o
+*.pdb
+*.app
+*.prg
+a.out

@@ -1,0 +1,13 @@
+avserver.app
+.C [-2- -8-]
+
+.C [-A- -H- -K-]
+.C [-C- -M -P -G -Z-]
+.L [-S=32768]
+=
+pcstart0.s
+avserver.c
+
+pcgemlib.lib
+pctoslib.lib
+pcstdli2.lib
