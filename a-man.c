@@ -4,6 +4,10 @@
 #define C_AmAN 0x416D414EL     /* 'AmAN' */
 #define _longframe *((short *)0x59e)
 
+#ifndef SuperToUser
+#define SuperToUser(sp) Super(sp)
+#endif
+
 typedef struct {
 	long id;
 	long value;
@@ -86,7 +90,7 @@ int main(void)
 		jar = *((COOKIE **)0x5a0);
 		p = jar;
 		sp_offset = _longframe ? 8 : 6;
-		Super((void *)old_sp);
+		SuperToUser((void *)old_sp);
 		if (p == 0)
 		{
 			p = install_jar(JARSIZE);
@@ -145,7 +149,7 @@ COOKIE *install_jar(long size)
 	jar = Malloc(size * sizeof(*jar));
 	Super(0);
 	*((COOKIE **)0x5a0) = jar;
-	Super((void *)old_sp); /* BUG: not saved above */
+	SuperToUser((void *)old_sp); /* BUG: not saved above */
 	/* BUG: no malloc check */
 	jar->id = 0;
 	jar->value = size;
