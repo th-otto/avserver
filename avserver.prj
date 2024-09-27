@@ -8,6 +8,8 @@ avserver.app
 pcstart0.s
 avserver.c
 
+setter.c
+
 pcgemlib.lib
 pctoslib.lib
 pcstdli2.lib

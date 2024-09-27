@@ -1,248 +1,3 @@
-av_startprog:
-x107e8:
-	movem.l    d3/a2-a5,-(a7)
-	movea.l    a0,a3
-	moveq.l    #-1,d3
-	clr.w      d0
-	lea.l      $00015B24,a2
-	bra.s      x107e8_1
-x107e8_3:
-	move.w     d0,d1
-	lsl.w      #3,d1
-	sub.w      d0,d1
-	add.w      d1,d1
-	cmpi.w     #$FFFF,0(a2,d1.w)
-	bne.s      x107e8_2
-	move.w     d0,d3
-x107e8_2:
-	addq.w     #1,d0
-x107e8_1:
-	cmp.w      #$0004,d0
-	blt.s      x107e8_3
-	cmp.w      #$FFFF,d3
-	beq        x107e8_4
-	move.w     d3,d0
-	lsl.w      #3,d0
-	sub.w      d3,d0
-	add.w      d0,d0
-	move.w     14(a3),2(a2,d0.w)
-	move.w     2(a3),0(a2,d0.w)
-	lea.l      6(a3),a0
-	movea.l    (a0),a4
-	move.w     $00014EF4,d1
-	beq.s      x107e8_5
-	movea.l    a4,a0
-	jsr        strupr
-x107e8_5:
-	movea.l    a4,a1
-	lea.l      -2628(a2),a0 ; $000150E0
-	jsr        strcpy
-	moveq.l    #92,d0
-	lea.l      -2628(a2),a0 ; $000150E0
-	jsr        strrchr
-	movea.l    a0,a4
-	lea.l      -1604(a2),a5 ; $000154E0
-	move.l     a4,d0
-	beq.s      x107e8_6
-	addq.w     #1,a4
-	movea.l    a4,a1
-	movea.l    a5,a0
-	jsr        strcpy
-	bra.s      x107e8_7
-x107e8_6:
-	moveq.l    #8,d0
-	lea.l      -2628(a2),a1 ; $000150E0
-	movea.l    a5,a0
-	jsr        strncpy
-x107e8_7:
-	moveq.l    #46,d0
-	movea.l    a5,a0
-	jsr        strchr
-	movea.l    a0,a4
-	move.l     a4,d0
-	beq.s      x107e8_8
-	clr.b      (a0)
-x107e8_8:
-	lea.l      $000149DB,a1
-	movea.l    a5,a0
-	jsr        strcat
-	clr.b      8(a5)
-	movea.l    a5,a1
-	move.w     d3,d0
-	lsl.w      #3,d0
-	sub.w      d3,d0
-	add.w      d0,d0
-	lea.l      4(a2,d0.w),a0
-	jsr        strcpy
-	move.w     -2752(a2),2(a3) ; $00015064
-	move.w     d3,d0
-	add.w      #$7D00,d0
-	move.w     d0,14(a3)
-	movea.l    a3,a0
-	moveq.l    #16,d1
-	move.w     -2750(a2),d0 ; magxdesk
-	jsr        appl_write
-	bra.s      x107e8_9
-x107e8_4:
-	jsr        error_overflow
-x107e8_9:
-	clr.w      (a3)
-	movem.l    (a7)+,d3/a2-a5
-	rts
-
-va_progstart:
-x108ea:
-	movem.l    d3/a2-a3,-(a7)
-	movea.l    a0,a2
-	cmpi.w     #$3E81,14(a2)
-	beq.w      x108ea_1
-	move.w     14(a2),d3
-	add.w      #$8300,d3
-	tst.w      d3
-	bmi.s      x108ea_2
-	cmp.w      #$0004,d3
-	bge.s      x108ea_2
-	lea.l      $00015B24,a3
-	move.w     -2752(a3),2(a2) ; $00015064
-	move.w     d3,d0
-	lsl.w      #3,d0
-	sub.w      d3,d0
-	add.w      d0,d0
-	move.w     2(a3,d0.w),14(a2)
-	lea.l      4(a3,d0.w),a0
-	jsr        appl_find
-	tst.w      d0
-	bpl.s      x108ea_3
-	clr.w      6(a2)
-	bra.s      x108ea_4
-x108ea_3:
-	move.w     #$0001,6(a2)
-x108ea_4:
-	movea.l    a2,a0
-	moveq.l    #16,d1
-	move.w     d3,d2
-	lsl.w      #3,d2
-	sub.w      d3,d2
-	add.w      d2,d2
-	move.w     0(a3,d2.w),d0
-	jsr        appl_write
-	move.w     d3,d0
-	lsl.w      #3,d0
-	sub.w      d3,d0
-	add.w      d0,d0
-	move.w     #$FFFF,0(a3,d0.w)
-	bra.s      x108ea_1
-x108ea_2:
-	cmpi.w     #$3E80,14(a2)
-	beq.s      x108ea_1
-	jsr        error_internal
-x108ea_1:
-	clr.w      (a2)
-	movem.l    (a7)+,d3/a2-a3
-	rts
-
-av_sendkey:
-x1097c:
-	movem.l    d3/a2-a3,-(a7)
-	movea.l    a0,a2
-	move.w     8(a2),d3
-	asr.w      #8,d3
-	cmpi.w     #$0004,6(a2)
-	bne.s      x1097c_1
-	cmp.w      #$0011,d3
-	bne.s      x1097c_1
-	jsr        $000116B4
-	bra        x1097c_2
-x1097c_1:
-	lea.l      $000150E0,a3
-	move.w     -122(a3),d0 ; magxdesk
-	bmi        x1097c_2
-	tst.w      d3
-	ble        x1097c_2
-	cmp.w      #$0039,d3
-	bgt        x1097c_2
-	cmpi.w     #$000A,6(a2)
-	beq.s      x1097c_3
-	cmpi.w     #$0009,6(a2)
-	beq.s      x1097c_3
-	cmpi.w     #$0006,6(a2)
-	beq.s      x1097c_3
-	cmpi.w     #$0005,6(a2)
-	bne.s      x1097c_2
-x1097c_3:
-	move.w     #$4740,(a2)
-	clr.w      4(a2)
-	lea.l      $00014879,a0
-	clr.w      d0
-	move.b     0(a0,d3.w),d0
-	move.w     d0,-(a7)
-	lea.l      $000149E4,a1
-	movea.l    a3,a0
-	jsr        vsprintf
-	addq.w     #2,a7
-	move.l     a3,d0
-	moveq.l    #16,d1
-	asr.l      d1,d0
-	move.w     d0,6(a2)
-	move.l     a3,d2
-	and.w      #$FFFF,d2
-	move.w     d2,8(a2)
-	lea.l      $000149E9,a1
-	lea.l      1024(a3),a0 ; $000154E0
-	jsr        strcpy
-	lea.l      1024(a3),a0 ; $000154E0
-	move.l     a0,d0
-	moveq.l    #16,d1
-	asr.l      d1,d0
-	move.w     d0,10(a2)
-	move.l     a0,d2
-	and.w      #$FFFF,d2
-	move.w     d2,12(a2)
-	clr.w      14(a2)
-	move.w     -122(a3),d0 ; magxdesk
-	moveq.l    #16,d1
-	movea.l    a2,a0
-	jsr        appl_write
-x1097c_2:
-	clr.w      (a2)
-	movem.l    (a7)+,d3/a2-a3
-	rts
-
-av_path_update:
-x10a58:
-	move.l     a2,-(a7)
-	move.l     a3,-(a7)
-	movea.l    a0,a2
-	clr.w      (a0)
-	lea.l      6(a2),a0
-	move.l     a0,d0
-	beq.s      x10a58_1
-	movea.l    (a0),a3
-	move.l     a3,d1
-	beq.s      x10a58_1
-	movea.l    a3,a0
-	jsr        strupr
-	move.w     #$0048,(a2)
-	move.w     $00015064,2(a2)
-	clr.w      4(a2)
-	clr.w      d0
-	move.b     (a3),d0
-	add.w      #$FFBF,d0
-	move.w     d0,6(a2)
-	clr.w      8(a2)
-	clr.w      10(a2)
-	clr.w      12(a2)
-	clr.w      14(a2)
-	movea.l    a2,a0
-	moveq.l    #16,d1
-	clr.w      d0
-	jsr        appl_write
-	clr.w      (a2)
-x10a58_1:
-	movea.l    (a7)+,a3
-	movea.l    (a7)+,a2
-	rts
-
 av_drag_on_window:
 x10ab6:
 	movem.l    d3-d7/a2-a4,-(a7)
@@ -271,7 +26,7 @@ x10ab6_2:
 	moveq.l    #1,d0
 	jsr        form_alert
 	move.w     #$4735,(a2)
-	move.w     -124(a4),2(a2) ; $00015064
+	move.w     -124(a4),2(a2) ; gl_apid
 	clr.w      4(a2)
 	clr.w      6(a2)
 	bra        x10ab6_4
@@ -298,14 +53,15 @@ J1:
 	dc.w $0138   ; x10ab6_8-J1
 	dc.w $01a8   ; x10ab6_9-J1
 	dc.w $00cc   ; x10ab6_10-J1
+VA_OB_FILE
 x10ab6_7:
 	move.l     a3,d0
 	beq        x10ab6_5
 	movea.l    a3,a1
-	lea.l      1024(a4),a0 ; $000154E0
+	lea.l      1024(a4),a0 ; startprog_name
 	jsr        strcpy
 	move.w     #$4722,(a2)
-	move.w     -124(a4),2(a2) ; $00015064
+	move.w     -124(a4),2(a2) ; gl_apid
 	clr.w      4(a2)
 	move.l     a4,d0
 	moveq.l    #16,d1
@@ -314,7 +70,7 @@ x10ab6_7:
 	move.l     a4,d2
 	and.w      #$FFFF,d2
 	move.w     d2,8(a2)
-	lea.l      1024(a4),a0 ; $000154E0
+	lea.l      1024(a4),a0 ; startprog_name
 	move.l     a0,d0
 	asr.l      d1,d0
 	move.w     d0,10(a2)
@@ -329,6 +85,7 @@ x10ab6_7:
 x10ab6_12:
 	moveq.l    #1,d6
 	bra        x10ab6_5
+VA_OB_SHREDDER
 x10ab6_6:
 	move.l     a3,d0
 	beq        x10ab6_5
@@ -345,7 +102,7 @@ x10ab6_6:
 	movea.l    a4,a0
 	jsr        strcpy
 x10ab6_11:
-	lea.l      1024(a4),a1 ; $000154E0
+	lea.l      1024(a4),a1 ; startprog_name
 	movea.l    a4,a0
 	moveq.l    #100,d2
 	moveq.l    #1,d1
@@ -356,6 +113,7 @@ x10ab6_11:
 x10ab6_14:
 	jsr        error_copy
 	bra        x10ab6_5
+VA_OB_WINDOW
 x10ab6_10:
 	move.w     d5,d1
 	move.w     d4,d0
@@ -373,7 +131,7 @@ x10ab6_10:
 	movea.l    a4,a0
 	jsr        strcpy
 	move.w     #$4725,(a2)
-	move.w     -124(a4),2(a2) ; $00015064
+	move.w     -124(a4),2(a2) ; gl_apid
 	clr.w      4(a2)
 	move.w     d7,6(a2)
 	move.w     d4,8(a2)
@@ -390,6 +148,7 @@ x10ab6_10:
 	moveq.l    #16,d1
 	jsr        appl_write
 	bra        x10ab6_12
+VA_OB_FOLDER
 x10ab6_8:
 	move.w     d5,d1
 	move.w     d4,d0
@@ -403,10 +162,10 @@ x10ab6_8:
 	bmi        x10ab6_5
 	move.b     #$43,1026(a4) ; $000154E2
 	lea.l      $00014A3D,a1
-	lea.l      1024(a4),a0 ; $000154E0
+	lea.l      1024(a4),a0 ; startprog_name
 	jsr        strcat
 	movea.l    a4,a1
-	lea.l      1024(a4),a0 ; $000154E0
+	lea.l      1024(a4),a0 ; startprog_name
 	jsr        strcat
 	moveq.l    #1,d6
 	lea.l      $00014A3F,a1
@@ -420,15 +179,16 @@ x10ab6_8:
 	movea.l    a4,a0
 	jsr        strcpy
 	bra        x10ab6_11
+VA_OB_DRIVE
 x10ab6_9:
 	move.l     a3,d0
 	beq.s      x10ab6_5
 	move.b     #$43,1026(a4) ; $000154E2
 	lea.l      $00014A67,a1
-	lea.l      1024(a4),a0 ; $000154E0
+	lea.l      1024(a4),a0 ; startprog_name
 	jsr        strcat
 	movea.l    a4,a1
-	lea.l      1024(a4),a0 ; $000154E0
+	lea.l      1024(a4),a0 ; startprog_name
 	jsr        strcat
 	moveq.l    #1,d6
 	lea.l      $00014A69,a1
@@ -442,7 +202,7 @@ x10ab6_9:
 	movea.l    a4,a0
 	jsr        strcpy
 x10ab6_13:
-	lea.l      1024(a4),a1 ; $000154E0
+	lea.l      1024(a4),a1 ; startprog_name
 	movea.l    a4,a0
 	moveq.l    #100,d2
 	moveq.l    #1,d1
@@ -452,7 +212,7 @@ x10ab6_13:
 	beq        x10ab6_14
 x10ab6_5:
 	move.w     #$4735,(a2)
-	move.w     -124(a4),2(a2) ; $00015064
+	move.w     -124(a4),2(a2) ; gl_apid
 	clr.w      4(a2)
 	move.w     d6,6(a2)
 x10ab6_4:
@@ -483,7 +243,7 @@ x10d8a:
 	move.w     2(a2),d4
 	move.w     #$4733,(a2)
 	lea.l      $000150E0,a0
-	move.w     -124(a0),2(a2) ; $00015064
+	move.w     -124(a0),2(a2) ; gl_apid
 	clr.w      4(a2)
 	move.w     (a7),6(a2)
 	move.w     d0,8(a2)
@@ -542,7 +302,7 @@ x10e3c:
 	movea.l    a0,a2
 	move.w     2(a2),d3
 	move.w     #$4722,(a0)
-	move.w     $00015064,2(a2)
+	move.w     gl_apid,2(a2)
 	clr.w      4(a2)
 	clr.w      10(a2)
 	clr.w      12(a2)
@@ -552,7 +312,7 @@ x10e3c:
 	move.w     magxdesk,d0
 	jsr        appl_write
 	move.w     #$4752,(a2)
-	move.w     $00015064,2(a2)
+	move.w     gl_apid,2(a2)
 	clr.w      4(a2)
 	move.w     #$0001,6(a2)
 	clr.w      8(a2)
@@ -607,32 +367,32 @@ x10eb0_5:
 	move.l     a5,d0
 	bne.s      x10eb0_6
 	lea.l      $00014A9C,a1
-	lea.l      1024(a2),a0 ; $000154E0
+	lea.l      1024(a2),a0 ; startprog_name
 	jsr        strcpy
 	bra.s      x10eb0_7
 x10eb0_6:
 	movea.l    a5,a1
-	lea.l      1024(a2),a0 ; $000154E0
+	lea.l      1024(a2),a0 ; startprog_name
 	jsr        strcpy
-	lea.l      1024(a2),a0 ; $000154E0
+	lea.l      1024(a2),a0 ; startprog_name
 	jsr        strlen
 	lea.l      1023(a2),a0 ; $000154DF
 	cmpi.b     #$5C,0(a0,d0.w)
 	beq.s      x10eb0_8
 	lea.l      $00014AAA,a1
-	lea.l      1024(a2),a0 ; $000154E0
+	lea.l      1024(a2),a0 ; startprog_name
 	jsr        strcat
 x10eb0_8:
 	lea.l      $00014AAC,a1
-	lea.l      1024(a2),a0 ; $000154E0
+	lea.l      1024(a2),a0 ; startprog_name
 	jsr        strcat
 x10eb0_7:
 	lea.l      $00014AB9,a1
-	lea.l      1024(a2),a0 ; $000154E0
+	lea.l      1024(a2),a0 ; startprog_name
 	jsr        fopen
 	movea.l    a0,a3
 	moveq.l    #46,d0
-	lea.l      1024(a2),a0 ; $000154E0
+	lea.l      1024(a2),a0 ; startprog_name
 	jsr        strrchr
 	movea.l    a0,a5
 	move.l     a5,d0
@@ -643,10 +403,10 @@ x10eb0_7:
 x10eb0_9:
 	clr.b      (a5)
 	lea.l      $00014ABB,a1
-	lea.l      1024(a2),a0 ; $000154E0
+	lea.l      1024(a2),a0 ; startprog_name
 	jsr        strcat
 	lea.l      $00014AC0,a1
-	lea.l      1024(a2),a0 ; $000154E0
+	lea.l      1024(a2),a0 ; startprog_name
 	jsr        fopen
 	movea.l    a0,a6
 	clr.w      d4
@@ -752,7 +512,7 @@ x10eb0_17:
 	jsr        fclose
 	movea.l    a6,a0
 	jsr        fclose
-	lea.l      1024(a2),a1 ; $000154E0
+	lea.l      1024(a2),a1 ; startprog_name
 	movea.l    a2,a0
 	jsr        strcpy
 	moveq.l    #46,d0
@@ -766,7 +526,7 @@ x10eb0_17:
 	movea.l    a2,a0
 	jsr        unlink
 	movea.l    a2,a1
-	lea.l      1024(a2),a0 ; $000154E0
+	lea.l      1024(a2),a0 ; startprog_name
 	jsr        rename
 	movea.l    4(a7),a0
 	clr.w      (a0)
@@ -801,7 +561,7 @@ x11128_1:
 	cmp.w      #$FFFF,d4
 	bne.s      x11128_4
 	move.w     #$4705,(a2)
-	move.w     -124(a3),2(a2) ; $00015064
+	move.w     -124(a3),2(a2) ; gl_apid
 	clr.w      4(a2)
 	clr.w      6(a2)
 	clr.w      8(a2)
@@ -824,7 +584,7 @@ x11128_4:
 	jsr        getenv
 	movea.l    a0,a4
 x11128_6:
-	lea.l      1024(a3),a5 ; $000154E0
+	lea.l      1024(a3),a5 ; startprog_name
 	move.l     a4,d0
 	bne.s      x11128_7
 	lea.l      564(a6),a1 ; $00014AE8
@@ -907,7 +667,7 @@ x11128_12:
 	jsr        fclose
 x11128_10:
 	move.w     #$4705,(a2)
-	move.w     -124(a3),2(a2) ; $00015064
+	move.w     -124(a3),2(a2) ; gl_apid
 	clr.w      4(a2)
 	clr.w      6(a2)
 	clr.w      8(a2)
@@ -957,8 +717,8 @@ x112ec_3:
 	suba.l     a4,a4
 x112ec_4:
 	move.w     #$4756,(a2)
-	lea.l      $000154E0,a3
-	move.w     -1148(a3),2(a2) ; $00015064
+	lea.l      startprog_name,a3
+	move.w     -1148(a3),2(a2) ; gl_apid
 	clr.w      4(a2)
 	clr.w      6(a2)
 	clr.w      8(a2)
@@ -1031,7 +791,7 @@ x113d8_2:
 	lea.l      $000150E0,a3
 	move.b     #$44,1026(a3) ; $000154E2
 	move.w     #$4756,(a2)
-	move.w     -124(a3),2(a2) ; $00015064
+	move.w     -124(a3),2(a2) ; gl_apid
 	clr.w      4(a2)
 	clr.w      6(a2)
 	clr.w      8(a2)
@@ -1049,7 +809,7 @@ x113d8_2:
 	movea.l    a3,a0
 	jsr        strcpy
 x113d8_3:
-	lea.l      1024(a3),a1 ; $000154E0
+	lea.l      1024(a3),a1 ; startprog_name
 	movea.l    a3,a0
 	moveq.l    #100,d2
 	moveq.l    #1,d1
@@ -1257,7 +1017,7 @@ x11506_18:
 	tst.w      d3
 	beq.s      x11506_11
 	move.w     #$4725,(a7)
-	move.w     -2172(a2),2(a7) ; $00015064
+	move.w     -2172(a2),2(a7) ; gl_apid
 	clr.w      4(a7)
 	move.w     d5,6(a7)
 	move.w     d7,8(a7)
@@ -1280,6 +1040,7 @@ x11506_10:
 	movem.l    (a7)+,d3-d7/a2-a3
 	rts
 
+cycle_windows:
 x116b4:
 	movem.l    d3-d4/a2-a3,-(a7)
 	lea.l      -18(a7),a7
@@ -1350,7 +1111,7 @@ x116b4_10:
 	cmp.w      #$FFFF,d4
 	beq        x116b4_1
 	move.w     #$0015,(a7)
-	move.w     -2624(a3),2(a7) ; $00015064
+	move.w     -2624(a3),2(a7) ; gl_apid
 	clr.w      4(a7)
 	move.w     d4,d0
 	lsl.w      #2,d0
@@ -1638,7 +1399,7 @@ x11a12:
 	move.l     a0,12(a7)
 	clr.w      d3
 	move.w     #$FFFF,(a0)
-	lea.l      $000154E0,a5
+	lea.l      startprog_name,a5
 	clr.b      -1024(a5) ; $000150E0
 	move.w     d4,d1
 	move.w     d5,d0
@@ -1787,7 +1548,7 @@ x11a12_10:
 	move.w     d2,-(a7)
 	lea.l      $00014B88,a1
 	lea.l      -1024(a5),a0 ; $000150E0
-	jsr        vsprintf
+	jsr        sprintf
 	addq.w     #2,a7
 	bra        x11a12_8
 x11a12_11:
@@ -2051,7 +1812,7 @@ x11dd4_4:
 x11dd4_5:
 	move.w     2(a2),d3
 	move.w     #$7A18,(a2)
-	move.w     $00015064,2(a2)
+	move.w     gl_apid,2(a2)
 	clr.w      4(a2)
 	movea.l    a2,a0
 	moveq.l    #16,d1
@@ -2081,7 +1842,7 @@ x11f4e:
 	move.l     a2,d0
 	beq        x11f4e_1
 	lea.l      $000150E0,a5
-	lea.l      $000154E0,a4
+	lea.l      startprog_name,a4
 	movea.l    a2,a1
 	movea.l    a5,a0
 	jsr        strcpy
@@ -2194,42 +1955,42 @@ x1206a_2:
 	move.w     d3,-(a7)
 	lea.l      880(a2),a1 ; $00014C24
 	movea.l    a3,a0
-	jsr        vsprintf
+	jsr        sprintf
 	addq.w     #2,a7
 	bra.s      x1206a_7
 x1206a_3:
 	move.w     d3,-(a7)
 	lea.l      945(a2),a1 ; $00014C65
 	movea.l    a3,a0
-	jsr        vsprintf
+	jsr        sprintf
 	addq.w     #2,a7
 	bra.s      x1206a_7
 x1206a_4:
 	move.w     d3,-(a7)
 	lea.l      1004(a2),a1 ; $00014CA0
 	movea.l    a3,a0
-	jsr        vsprintf
+	jsr        sprintf
 	addq.w     #2,a7
 	bra.s      x1206a_7
 x1206a_5:
 	move.w     d3,-(a7)
 	lea.l      1063(a2),a1 ; $00014CDB
 	movea.l    a3,a0
-	jsr        vsprintf
+	jsr        sprintf
 	addq.w     #2,a7
 	bra.s      x1206a_7
 x1206a_6:
 	move.w     d3,-(a7)
 	lea.l      1126(a2),a1 ; $00014D1A
 	movea.l    a3,a0
-	jsr        vsprintf
+	jsr        sprintf
 	addq.w     #2,a7
 	bra.s      x1206a_7
 x1206a_1:
 	move.w     d3,-(a7)
 	lea.l      1195(a2),a1 ; $00014D5F
 	movea.l    a3,a0
-	jsr        vsprintf
+	jsr        sprintf
 	addq.w     #2,a7
 x1206a_7:
 	movea.l    a3,a0
@@ -2316,7 +2077,7 @@ x12196_2:
 	movea.l    d1,a0
 	movea.l    8(a0),a0
 	move.w     (a0),$00015068
-	move.w     $00015064,(a0)
+	move.w     gl_apid,(a0)
 x12196_1:
 	movea.l    $00015B72,a0
 	movea.l    $0001219E,a0
@@ -3203,7 +2964,7 @@ x12d3e_4:
 [00014887]                           dc.b $08
 [00014888]                           dc.b $09,'QWERTZUIOP'
 [00014893]                           dc.b $9a
-[00014894]                           dc.w $2b0d
+[00014894]                           dc.w $2b0d -
 [00014896]                           dc.b $00
 [00014897]                           dc.b 'ASDFGHJKL'
 [000148a0]                           dc.w $998e
@@ -3585,8 +3346,10 @@ _fpumode:
 15064-15066: apid
 15066-15068: magxdesk
 15068-1506A:
-1506A-1506C: av_prookoll3
-1506C-1506E: av_prookoll4
+1506A-1506C: av_protokoll3
+1506C-1506E: av_protokoll4
+150e0-154e0: startprog_path
+154e0-158e0: startprog_name
 158E0-158E4:
 158e4-15aa4: clients
 15aa4-15b24: windows

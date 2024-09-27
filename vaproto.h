@@ -402,7 +402,7 @@
  * dafuer, dass alles, was mit Laufwerk C:\ zu tun hat, neu eingelesen
  * wird.
  *
- * Word 3+4 Pointer auf den absolten Pfad
+ * Word 3+4 Pointer auf den absoluten Pfad
  */
 #define AV_PATH_UPDATE		0x4730
 
