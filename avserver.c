@@ -2,40 +2,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <aes.h>
+#include <vdi.h>
 #include <tos.h>
 #include "vaproto.h"
 #include "avserver.h"
-
-#define DATE     "Jan 29 1999"
-#define VERSION  "1.3"
-
-#ifndef _WORD
-#ifdef __PUREC__
-#define _WORD int
-#define _UWORD int
-#else
-#define _WORD short
-#define _UWORD short
-#endif
-#endif
-#ifndef SH_WDRAW
-#define SH_WDRAW        72          /* AES 4.0 */
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#define TRUE  1
-#endif
-#ifndef SuperToUser
-#define SuperToUser(sp) Super(sp)
-#endif
-
-#define C_AmAN 0x416D414EL     /* 'AmAN' */
-#define C_AVSV 0x41565356L     /* 'AVSV' */
-#define _longframe *((short *)0x59e)
-
-#define DATE     "Jan 29 1999"
-#define VERSION  "1.3"
+#include "a-man.h"
 
 char const sccs_id[] = "@(#)AV-Server " VERSION " (" DATE "), Copyright (c)1996-98 by A. Barton";
 char const progname[] = "AVSERVER";
@@ -48,7 +19,7 @@ char const keyboard_table[] = "\0\x17!\"\xdd$%&/()=?`^\x08\x09QWERTZUIOP\x94-\x0
 #define MAX_PROGS     4
 
 extern short sp_offset;
-extern long install_aes_trap(void);
+long install_aes_trap(void);
 
 #define MAX_APPNAME 8
 
@@ -80,61 +51,114 @@ struct avserver_info {
 
 _WORD gl_apid;
 _WORD magxdesk;
-_WORD x15068;
+_WORD ap_dragdrop_id;
 _WORD av_protokoll3;
 _WORD av_protokoll4;
-char space1[114];
+_WORD workout[57];
 char startprog_path[1024];
 char startprog_name[1024];
-void *x158e0;
+void *dd_data;
 struct client clients[MAX_CLIENTS];
 struct window windows[MAX_WINDS];
 struct program programs[MAX_PROGS];
 struct avserver_info avserver_info;
 
 static void etv_term(void);
-static void x11486(void);
-void x11f4e(char *names);
-int x11a12(_WORD mox, _WORD moy, _WORD *owner);
+static void check_apps(void);
+static void x11f4e(char *names);
+static int what_izit(_WORD mox, _WORD moy, _WORD *owner);
 
 
-int dd_reply(int fd, _WORD msg4, _WORD msg5, _WORD msg3, _WORD id);
 
 void error_dragdrop(void);
 void error_internal(void);
 void error_overflow(void);
 void error_copy(void);
+void error_no_aman(void);
+void error_magx_inf(void);
 
-int xbra_unlink(int vec);
+static int xbra_unlink(int vec);
 
-void cycle_windows(void);
+static void cycle_windows(void);
 
 
 static void av_protokoll(_WORD *message);
 static void av_exit(_WORD *message);
 static void av_path_update(_WORD *message);
 static void av_drag_on_window(_WORD *message);
-void av_what_izit(_WORD *message);
+static void av_what_izit(_WORD *message);
 static void av_accwindopen(_WORD *message);
 static void av_accwindclosed(_WORD *message);
 static void av_startprog(_WORD *message);
 static void va_progstart(_WORD *message);
 static void av_sendkey(_WORD *message);
-void av_xwind(_WORD *message);
-void av_openwind(_WORD *message);
-void av_view(_WORD *message);
-void av_status(_WORD *message);
-void av_getstatus(_WORD *message);
-void av_copyfile(_WORD *message);
-void av_delfile(_WORD *message);
+static void av_xwind(_WORD *message);
+static void av_openwind(_WORD *message);
+static void av_view(_WORD *message);
+static void av_status(_WORD *message);
+static void av_getstatus(_WORD *message);
+static void av_copyfile(_WORD *message);
+static void av_delfile(_WORD *message);
 static void va_start_(void);
 
 #define AV_SERVER_INFO 0x4798
 #define VA_SERVER_INFO 0x4799
 static void av_server_info(_WORD *message);
 
+static int ap_dragdrop(int fd, _WORD mox, _WORD moy, _WORD winid, _WORD apid);
+static int dd_reply(int fd, char ack);
+
+
+/*
+ * Font protocoll
+ */
 #define FONT_SELECT   0x7a19
-void font_select(_WORD *message);
+#define FONT_CHANGED  0x7a18
+static void font_select(_WORD *message);
+static void fontselect_error(int code);
+
+#if defined(__GNUC__)
+#include <gemx.h>
+#elif defined(__PORTAES_H__)
+#include <wdlgfslx.h>
+#else
+/*
+ * fnts_* prototypes, not present in original pcgemlib.lib
+ */
+typedef struct _fnt_dialog { int dummy; } FNT_DIALOG;
+typedef long fix31;
+
+/* Definitions for <font_flags> with fnts_create() */
+#define FNTS_BTMP   1                   /* Display bitmap fonts */
+#define FNTS_OUTL   2                   /* Display vector fonts */
+#define FNTS_MONO   4                   /* Display equidistant fonts */
+#define FNTS_PROP   8                   /* Display proportional fonts */
+#define FNTS_ALL    15
+
+/* Definitions for <dialog_flags> with fnts_create() */
+#define FNTS_3D     1                   /* Use 3D-design */
+
+/* Definitions for <button> with fnts_evnt() */
+
+#define FNTS_CANCEL     1              /* "Cancel was selected */
+#define FNTS_OK         2              /* "OK" was pressed */
+#define FNTS_SET        3              /* "Set" was selected */
+#define FNTS_MARK       4              /* "Mark" was selected */
+#define FNTS_OPT        5              /* The application's own button was selected */
+#define FNTS_OPTION		FNTS_OPT
+
+/* Definitions for <button_flags> with fnts_open() */
+#define FNTS_SNAME      0x01           /* Select checkbox for names */
+#define FNTS_SSTYLE     0x02           /* Select checkbox for styles */
+#define FNTS_SSIZE      0x04           /* Select checkbox for height */
+#define FNTS_SRATIO     0x08           /* Select checkbox for width/height ratio */
+
+FNT_DIALOG *fnts_create(_WORD vdi_handle, _WORD no_fonts, _WORD font_flags, _WORD dialog_flags, const char *sample, const char *opt_button);
+_WORD fnts_delete(FNT_DIALOG *fnt_dialog, _WORD vdi_handle);
+_WORD fnts_open(FNT_DIALOG *fnt_dialog, _WORD button_flags, _WORD x, _WORD y, long id, fix31 pt, _LONG ratio);
+_WORD fnts_close(FNT_DIALOG *fnt_dialog, _WORD *x, _WORD *y);
+_WORD fnts_do(FNT_DIALOG *fnt_dialog, _WORD button_flags, _LONG id_in, _LONG pt_in, _LONG ratio_in, _WORD *check_boxes, _LONG *id, _LONG *pt, _LONG *ratio);
+#endif
 
 
 #define MGCOPY_NAME "MGCOPY.APP"
@@ -190,7 +214,7 @@ int main(void)
 		VA_PROT_XWIND;
 	av_protokoll4 = VA_PROT_COPYFILE | VA_PROT_DELFILE | VA_PROT_VIEW;
 	done = FALSE;
-	x158e0 = NULL;
+	dd_data = NULL;
 	old_sp = Super(0);
 	sp_offset = _longframe ? 8 : 6;
 	SuperToUser((void *)old_sp);
@@ -225,14 +249,14 @@ int main(void)
 		}
 		
 		if (!done)
-			x11486();
+			check_apps();
 		
 		if (message[0] == SH_WDRAW)
-			appl_write(magxdesk, (int)sizeof(message), message);
+			appl_write(magxdesk, 16, message);
 		
 		/*
-		 * FIXME: AP_DRAGDROP should always go the window owner,
-		 * not to the AV-Server
+		 * The AP_DRAGDROP message will be redirected
+		 * here by our aes_trap
 		 */
 		if (message[0] == AP_DRAGDROP)
 		{
@@ -244,8 +268,8 @@ int main(void)
 			fd = Fopen(filename, FO_RW);
 			if (fd >= 0)
 			{
-				if (dd_reply((int)fd, message[4], message[5], message[3], x15068) == 0)
-					appl_write(x15068, (int)sizeof(message), message);
+				if (ap_dragdrop((int)fd, message[4], message[5], message[3], ap_dragdrop_id) == FALSE)
+					appl_write(ap_dragdrop_id, 16, message);
 			} else
 			{
 				error_dragdrop();
@@ -557,7 +581,7 @@ static void va_progstart(_WORD *message)
 {
 	int slot;
 	
-	if (message[7] != 0x3e81) /* ??? what is this? */
+	if (message[7] != 0x3e81) /* if message was not sent from av_view() */
 	{
 		slot = message[7] - 0x7d00;
 		if (slot >= 0 && slot < MAX_PROGS)
@@ -618,8 +642,35 @@ static void av_sendkey(_WORD *message)
 
 static void av_path_update(_WORD *message)
 {
+	char **pp;
+	char *path;
+	
 	/* mark message as handled */
 	message[0] = 0; /* FIXME: unnecessary */
+	pp = (char **)&message[3];
+	if (pp != NULL) /* FIXME: cannot be NULL */
+	{
+		path = *pp;
+		if (path != NULL)
+		{
+			/* FIXME: check for setter.av_startprog_upper */
+			strupr(path);
+			message[0] = SH_WDRAW;
+			message[1] = gl_apid;
+			message[2] = 0;
+			/* FIXME: check for absolute path with drive */
+			/* FIXME: check for drive > 'Z' */
+			message[3] = path[0] - 'A';
+			message[4] = 0;
+			message[5] = 0;
+			message[6] = 0;
+			message[7] = 0;
+			/* BUG: send to magxdesk */
+			appl_write(0, 16, message);
+			/* mark message as handled */
+			message[0] = 0; /* FIXME: unnecessary */
+		}
+	}
 }
 
 
@@ -632,6 +683,7 @@ static void av_drag_on_window(_WORD *message)
 	_WORD success;
 	_WORD owner;
 	_WORD wh;
+	int type;
 	
 	apid = message[1];
 	mox = message[3];
@@ -642,7 +694,7 @@ static void av_drag_on_window(_WORD *message)
 		names = *pp;
 	else
 		names = NULL;
-	if (names != NULL && strlen(names) >= sizeof(startprog_path))
+	if (names != NULL && strlen(names) > sizeof(startprog_path)) /* BUG: must be >= */
 	{
 		form_alert(1, "[3][AV-Server: Too many objects!][Cancel]");
 		message[0] = VA_DRAG_COMPLETE;
@@ -653,7 +705,8 @@ static void av_drag_on_window(_WORD *message)
 	{
 		x11f4e(names);
 		success = FALSE;
-		switch (x11a12(mox, moy, &owner))
+		type = what_izit(mox, moy, &owner); /* FIXME: type not needed below */
+		switch (type)
 		{
 		case VA_OB_FILE:
 			if (names != NULL)
@@ -664,8 +717,8 @@ static void av_drag_on_window(_WORD *message)
 				message[2] = 0;
 				message[3] = (_WORD)((long)startprog_path >> 16);
 				message[4] = (_WORD)((unsigned int)(unsigned long)startprog_path) & 0xffffu;
-				message[5] = (_WORD)((long)startprog_name >> 16);
-				message[6] = (_WORD)((unsigned int)(unsigned long)startprog_name) & 0xffffu;
+				message[5] = (_WORD)((long)(startprog_name) >> 16);
+				message[6] = (_WORD)((unsigned int)(unsigned long)(startprog_name)) & 0xffffu;
 				message[7] = 0x3e80;
 				appl_write(magxdesk, 16, message);
 				success = TRUE;
@@ -680,7 +733,7 @@ static void av_drag_on_window(_WORD *message)
 				strcpy(startprog_path, MGCOPY_NAME);
 				if (shel_find(startprog_path) == 0)
 					strcpy(startprog_path, MGCOPY_PATH);
-				if (shel_write(100, 1, 100, startprog_path, startprog_name) == 0)
+				if (shel_write(100, 1, SHW_PARALLEL, startprog_path, startprog_name) == 0)
 					error_copy();
 			}
 			break;
@@ -692,7 +745,7 @@ static void av_drag_on_window(_WORD *message)
 				wind_get(wh, WF_OWNER, &owner);
 				if (owner >= 0)
 				{
-					strcpy(startprog_name, names);
+					strcpy(startprog_path, names);
 					message[0] = VA_DRAGACCWIND;
 					message[1] = gl_apid;
 					message[2] = 0;
@@ -714,13 +767,12 @@ static void av_drag_on_window(_WORD *message)
 			{
 				startprog_name[2] = 'C';
 				strcat(startprog_name, " ");
-				/* BUG: no check names != NULL */
-				strcat(startprog_name, names);
+				strcat(startprog_name, startprog_path);
 				success = TRUE;
 				strcpy(startprog_path, MGCOPY_NAME);
 				if (shel_find(startprog_path) == 0)
 					strcpy(startprog_path, MGCOPY_PATH);
-				if (shel_write(100, 1, 100, startprog_path, startprog_name) == 0)
+				if (shel_write(100, 1, SHW_PARALLEL, startprog_path, startprog_name) == 0)
 					error_copy();
 			}
 			break;
@@ -730,12 +782,12 @@ static void av_drag_on_window(_WORD *message)
 			{
 				startprog_name[2] = 'C';
 				strcat(startprog_name, " ");
-				strcat(startprog_name, names);
+				strcat(startprog_name, startprog_path); /* BUG? should be names */
 				success = TRUE;
 				strcpy(startprog_path, MGCOPY_NAME);
 				if (shel_find(startprog_path) == 0)
 					strcpy(startprog_path, MGCOPY_PATH);
-				if (shel_write(100, 1, 100, startprog_path, startprog_name) == 0)
+				if (shel_write(100, 1, SHW_PARALLEL, startprog_path, startprog_name) == 0)
 					error_copy();
 			}
 			break;
@@ -755,125 +807,1050 @@ static void av_drag_on_window(_WORD *message)
 }
 
 
-int dd_reply(int fd, _WORD msg4, _WORD msg5, _WORD msg3, _WORD id)
+static void av_what_izit(_WORD *message)
 {
-	(void)fd;
-	(void)msg4;
-	(void)msg5;
-	(void)msg3;
-	(void)id;
-	return 0;
-}
-
-
-void av_xwind(_WORD *message)
-{
+	_WORD apid;
+	_WORD mox, moy;
+	int type;
+	_WORD owner;
+	
+	mox = message[3];
+	moy = message[4];
+	type = what_izit(mox, moy, &owner);
+	apid = message[1];
+	message[0] = VA_THAT_IZIT;
+	message[1] = gl_apid;
+	message[2] = 0;
+	message[3] = owner;
+	message[4] = type;
+	message[5] = 0;
+	message[6] = 0;
+	message[7] = 0;
+	if (startprog_path[0] != '\0' && type != VA_OB_UNKNOWN)
+	{
+		message[5] = (_WORD)((long)startprog_path >> 16);
+		message[6] = (_WORD)((unsigned int)(unsigned long)startprog_path) & 0xffffu;
+	}
+	appl_write(apid, 16, message);
 	/* mark message as handled */
 	message[0] = 0; /* FIXME: unnecessary */
 }
 
 
-void av_openwind(_WORD *message)
+static void av_xwind(_WORD *message)
 {
-	(void)message;
+	/* just forward */
+	appl_write(magxdesk, 16, message);
+	/* mark message as handled */
+	message[0] = 0; /* FIXME: unnecessary */
 }
 
 
-void av_view(_WORD *message)
+static void av_openwind(_WORD *message)
 {
-	(void)message;
+	message[7] = 0;
+	message[0] = AV_XWIND;
+	appl_write(magxdesk, 16, message);
+	/* mark message as handled */
+	message[0] = 0; /* FIXME: unnecessary */
 }
 
 
-void av_what_izit(_WORD *message)
+static void av_view(_WORD *message)
 {
-	(void)message;
+	_WORD apid;
+	
+	apid = message[1];
+	message[0] = AV_STARTPROG;
+	message[1] = gl_apid;
+	message[2] = 0;
+	message[5] = 0;
+	message[6] = 0;
+	message[7] = 0x3e81;
+	appl_write(magxdesk, 16 + message[2], message); /* FIXME: message[2] was cleared above */
+	/* send reply */
+	message[0] = VA_VIEWED;
+	message[1] = gl_apid;
+	message[2] = 0;
+	message[3] = 1;
+	message[4] = 0;
+	message[5] = 0;
+	message[6] = 0;
+	message[7] = 0;
+	appl_write(apid, 16, message);
+	/* mark message as handled */
+	message[0] = 0; /* FIXME: unnecessary */
 }
 
 
-void av_status(_WORD *message)
+static void av_status(_WORD *message)
 {
-	(void)message;
+	int i;
+	int slot;
+	char *p;
+	FILE *fp;
+	FILE *out;
+	int found;
+	char **pp;
+	char *str;
+	
+	slot = -1;
+	for (i = 0; i < MAX_CLIENTS; i++)
+		if (clients[i].apid == message[1])
+			slot = i;
+	if (slot == -1)
+		return;
+
+	p = getenv("ETCDIR");
+	if (p == NULL)
+		p = getenv("ETC");
+	if (p == NULL)
+	{
+		strcpy(startprog_name, "\\AVSERVER.INF");
+	} else
+	{
+		strcpy(startprog_name, p);
+		if (startprog_name[strlen(startprog_name) - 1] != '\\')
+			strcat(startprog_name, "\\");
+		strcat(startprog_name, "AVSERVER.INF");
+	}
+	fp = fopen(startprog_name, "r");
+	/* BUG: no NULL check here */
+	p = strrchr(startprog_name, '.');
+	if (p == NULL)
+	{
+		fclose(fp);
+		return;
+	}
+	*p = '\0';
+	strcat(startprog_name, ".NEW");
+	out = fopen(startprog_name, "w");
+	/* BUG: no NULL check here */
+	found = FALSE;
+	while (!feof(fp))
+	{
+		fgets(startprog_path, 256, fp);
+		if (feof(fp))
+			break;
+		if (startprog_path[strlen(startprog_path) - 1] == '\n')
+			startprog_path[strlen(startprog_path) - 1] = '\0';
+		p = strchr(startprog_path, '\001');
+		if (p != NULL)
+		{
+			*p = '\0';
+			p++;
+			if (strcmp(startprog_path, clients[slot].name) == 0)
+			{
+				pp = (char **)&message[3];
+				str = *pp;
+				if (!found && str != NULL && str[0] != '\0')
+				{
+					fprintf(out, "%s\001%s\n", clients[slot].name, str);
+				}
+				found = TRUE;
+			} else
+			{
+				*--p = '\001';
+				fprintf(out, "%s\n", startprog_path);
+			}
+		} else
+		{
+			fprintf(out, "%s\n", startprog_path);
+		}
+	}
+	if (!found)
+	{
+		pp = (char **)&message[3];
+		str = *pp;
+		/* BUG: str can be NULL */
+		fprintf(out, "%s\001%s\n", clients[slot].name, str);
+	}
+	
+	fclose(fp);
+	fclose(out);
+	strcpy(startprog_path, startprog_name);
+	p = strrchr(startprog_path, '.');
+	*p = '\0';
+	strcat(startprog_path, ".INF");
+	unlink(startprog_path);
+	rename(startprog_name, startprog_path);
+	
+	/* mark message as handled */
+	message[0] = 0; /* FIXME: unnecessary */
 }
 
 
-void av_getstatus(_WORD *message)
+static void av_getstatus(_WORD *message)
 {
-	(void)message;
+	_WORD apid;
+	int i;
+	int slot;
+	char *p;
+	FILE *fp;
+	int found;
+	
+	apid = message[1];
+	slot = -1;
+	for (i = 0; i < MAX_CLIENTS; i++)
+		if (clients[i].apid == apid)
+			slot = i;
+	if (slot == -1)
+	{
+		message[0] = VA_SETSTATUS;
+		message[1] = gl_apid;
+		message[2] = 0;
+		message[3] = 0;
+		message[4] = 0;
+		message[5] = 0;
+		message[6] = 0;
+		message[7] = 0;
+		appl_write(apid, 16, message);
+	} else
+	{
+		p = getenv("ETCDIR");
+		if (p == NULL)
+			p = getenv("ETC");
+		if (p == NULL)
+		{
+			strcpy(startprog_name, "\\AVSERVER.INF");
+		} else
+		{
+			strcpy(startprog_name, p);
+			if (startprog_name[strlen(startprog_name) - 1] != '\\')
+				strcat(startprog_name, "\\");
+			strcat(startprog_name, "AVSERVER.INF");
+		}
+		found = FALSE;
+		fp = fopen(startprog_name, "r");
+		if (fp != NULL)
+		{
+			while (!feof(fp))
+			{
+				fgets(startprog_path, 256, fp);
+				if (feof(fp))
+					break;
+				if (startprog_path[strlen(startprog_path) - 1] == '\n')
+					startprog_path[strlen(startprog_path) - 1] = '\0';
+				p = strchr(startprog_path, '\001');
+				if (p != NULL)
+				{
+					*p = '\0';
+					p++;
+					if (strcmp(startprog_path, clients[slot].name) == 0)
+					{
+						found = TRUE;
+						strcpy(startprog_name, p);
+					}
+				}
+				if (found)
+					break;
+			}
+			fclose(fp);
+		}
+
+		message[0] = VA_SETSTATUS;
+		message[1] = gl_apid;
+		message[2] = 0;
+		message[3] = 0;
+		message[4] = 0;
+		if (found)
+		{
+			message[3] = (_WORD)((long)startprog_name >> 16);
+			message[4] = (_WORD)((unsigned int)(unsigned long)startprog_name) & 0xffffu;
+		}
+		message[5] = 0;
+		message[6] = 0;
+		message[7] = 0;
+		appl_write(apid, 16, message);
+
+		/* mark message as handled */
+		message[0] = 0; /* FIXME: unnecessary */
+	}
 }
 
 
-void av_copyfile(_WORD *message)
+static void av_copyfile(_WORD *message)
 {
-	(void)message;
+	_WORD apid;
+	char **pp;
+	char *names;
+
+	apid = message[1];
+	pp = (char **)&message[3];
+	if (pp != NULL) /* FIXME: cannot be NULL */
+		names = *pp;
+	else
+		names = NULL;
+	x11f4e(names);
+	pp = (char **)&message[5];
+	if (pp != NULL) /* FIXME: cannot be NULL */
+		names = *pp;
+	else
+		names = NULL;
+	message[0] = VA_FILECOPIED;
+	message[1] = gl_apid;
+	message[2] = 0;
+	message[3] = 0;
+	message[4] = 0;
+	message[5] = 0;
+	message[6] = 0;
+	message[7] = 0; /* BUG: will be needed below */
+	if (names != NULL)
+	{
+		strcat(startprog_name, " ");
+		strcat(startprog_name, names);
+		/* move mode? */
+		if (message[7] == 1) /* BUG: test only bit #0 */
+			startprog_name[2] = 'M';
+		else
+			startprog_name[2] = 'C';
+		strcpy(startprog_path, MGCOPY_NAME);
+		if (shel_find(startprog_path) == 0)
+			strcpy(startprog_path, MGCOPY_PATH);
+		if (shel_write(100, 1, SHW_PARALLEL, startprog_path, startprog_name) == 0)
+			error_copy();
+		else
+			message[3] = 1;
+	}
+	appl_write(apid, 16, message);
+	
+	/* mark message as handled */
+	message[0] = 0; /* FIXME: unnecessary */
 }
 
 
-void av_delfile(_WORD *message)
+static void av_delfile(_WORD *message)
 {
-	(void)message;
+	_WORD apid;
+	char **pp;
+	char *names;
+
+	apid = message[1];
+	pp = (char **)&message[3];
+	if (pp != NULL) /* FIXME: cannot be NULL */
+		names = *pp;
+	else
+		names = NULL;
+	x11f4e(names);
+	
+	startprog_name[2] = 'D';
+	message[0] = VA_FILECOPIED; /* BUG: should be VA_FILEDELETED */
+	message[1] = gl_apid;
+	message[2] = 0;
+	message[3] = 0;
+	message[4] = 0;
+	message[5] = 0;
+	message[6] = 0;
+	message[7] = 0;
+	
+	strcpy(startprog_path, MGCOPY_NAME);
+	if (shel_find(startprog_path) == 0)
+		strcpy(startprog_path, MGCOPY_PATH);
+	if (shel_write(100, 1, SHW_PARALLEL, startprog_path, startprog_name) == 0)
+		error_copy();
+	else
+		message[3] = 1;
+	appl_write(apid, 16, message);
+
+	/* mark message as handled */
+	message[0] = 0; /* FIXME: unnecessary */
 }
 
 
-void font_select(_WORD *message)
+/*
+ * check all registered clients to be still active.
+ * If not, invalidate their entries
+ */
+static void check_apps(void)
 {
-	(void)message;
+	int i;
+	int j;
+	
+	for (i = 0; i < MAX_CLIENTS; i++)
+	{
+		if (clients[i].apid != -1 && appl_find(clients[i].name) < 0)
+		{
+			for (j = 0; j < MAX_WINDS; j++)
+			{
+				if (windows[j].apid == clients[i].apid)
+				{
+					/* BUG: must use j, not i */
+					windows[i].winid = -1;
+					windows[i].apid = -1;
+				}
+			}
+			clients[i].apid = -1;
+		}
+	}
 }
 
 
-void error_dragdrop(void)
+/* AP_DRAGDROP return codes */
+#define DD_OK        0
+#define DD_NAK       1
+#define DD_EXT       2
+#define DD_LEN       3
+#define DD_TRASH     4
+#define DD_PRINTER   5
+#define DD_CLIPBOARD 6
+
+struct dd_header {
+	short hdrlen;
+	char type[6];
+	long datasize;
+	char *obname;
+	char *filename;
+};
+
+static int dd_getheader(int fd, struct dd_header *header);
+
+/*
+ * Perform D&D protocoll.
+ * BUG: no signal handler installed to catch SIGPIPE
+ */
+static int ap_dragdrop(int fd, _WORD mox, _WORD moy, _WORD winid, _WORD apid)
 {
+	int found;
+	int i;
+	struct dd_header header;
+	_WORD message[8];
+
+	found = FALSE;
+	for (i = 0; i < MAX_CLIENTS; i++)
+	{
+		if (clients[i].apid == apid)
+			found = TRUE;
+		if (found)
+			break;
+	}
+	if (found)
+	{
+		found = FALSE;
+		for (i = 0; i < MAX_WINDS; i++)
+		{
+			if (windows[i].winid == winid)
+				found = TRUE;
+			if (found)
+				break;
+		}
+	}
+	if (!found)
+	{
+		/* BUG: fd not closed */
+		return FALSE;
+	}
+
+	if (dd_reply(fd, DD_OK))
+	{
+		if (Fwrite(fd, 32, "ARGS\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0") != 32)
+		{
+			Fclose(fd);
+			error_dragdrop();
+		} else
+		{
+			do
+			{
+				if (dd_getheader(fd, &header) == FALSE)
+				{
+					return TRUE;
+				}
+				if (strncmp("ARGS", header.type, 4) != 0)
+				{
+					if (dd_reply(fd, DD_EXT))
+						continue;
+					return TRUE;
+				}
+				if (dd_data != NULL)
+					free(dd_data);
+				dd_data = malloc(header.datasize);
+				if (dd_data == NULL)
+				{
+					if (dd_reply(fd, DD_LEN))
+						continue;
+					return TRUE;
+				}
+				if (dd_reply(fd, DD_OK) == FALSE)
+					return TRUE;
+				if (Fread(fd, header.datasize, dd_data) != header.datasize)
+				{
+					dd_reply(fd, DD_NAK);
+					Fclose(fd);
+					error_dragdrop();
+					break;
+				}
+				found = TRUE;
+			} while (!found);
+			Fclose(fd);
+			if (found)
+			{
+				message[0] = VA_DRAGACCWIND;
+				message[1] = gl_apid;
+				message[2] = 0;
+				message[3] = winid;
+				message[4] = mox;
+				message[5] = moy;
+				message[6] = (_WORD)((long)dd_data >> 16);
+				message[7] = (_WORD)((unsigned int)(unsigned long)dd_data) & 0xffffu;
+				appl_write(apid, 16, message);
+			}
+		}
+	}
+	
+	return TRUE;
 }
 
 
-void error_internal(void)
+static void cycle_windows(void)
 {
+	_WORD top;
+	_WORD message[8];
+	int tries;
+	int topslot;
+	int bottomslot;
+	int i;
+	
+	wind_get(0, WF_TOP, &top);
+	if (top == 0)
+		return;
+	tries = 0;
+	do
+	{
+		topslot = -1;
+		bottomslot = -1;
+		for (i = 0; i < MAX_WINDS; i++)
+			if (windows[i].winid == top)
+				topslot = i;
+		if (topslot == -1)
+			topslot = 0;
+		for (i = topslot + 1; i < MAX_WINDS; i++)
+			if (windows[i].winid != -1)
+			{
+				bottomslot = i;
+				break;
+			}
+		if (bottomslot == -1)
+		{
+			for (i = 0; i < topslot; i++)
+				if (windows[i].winid != -1)
+				{
+					bottomslot = i;
+					break;
+				}
+		}
+		if (bottomslot == -1)
+			break;
+		message[0] = WM_TOPPED;
+		message[1] = gl_apid;
+		message[2] = 0;
+		message[3] = windows[bottomslot].winid;
+		message[4] = 0;
+		message[5] = 0;
+		message[6] = 0;
+		message[7] = 0;
+		appl_write(windows[bottomslot].apid, 16, message);
+		evnt_timer(250, 0);
+		wind_get(0, WF_TOP, &top);
+		if (top == 0)
+			break;
+		if (top == windows[bottomslot].winid)
+			break;
+		check_apps();
+		evnt_timer(500, 0);
+		wind_get(0, WF_TOP, &top);
+		if (top == 0)
+			break;
+		if (top == windows[bottomslot].winid)
+			break;
+		top = windows[bottomslot].winid;
+		/* BUG: tries never incremented */
+	} while (tries < 3);
+}
+
+
+#if !defined(__PORTAES_H__) && !defined(__GNUC__)
+/*
+ * Replacement for wind_get() in pcgemlib.
+ * The version in the original library cannot be used,
+ * because it does not know about the new WF_* options,
+ * and has a fixed table for the "known" values to determine
+ * the number of arguments.
+ */
+static int wnd_get(_WORD handle, _WORD field, _WORD *out1, _WORD *out2, _WORD *out3, _WORD *out4)
+{
+	AESPB pb;
+	
+	pb.contrl = _GemParBlk.contrl;
+	pb.global = _GemParBlk.global;
+	pb.intin = _GemParBlk.intin;
+	pb.intout = _GemParBlk.intout;
+	_GemParBlk.contrl[0] = 104;
+	_GemParBlk.contrl[1] = 2;
+	_GemParBlk.contrl[2] = 5;
+	_GemParBlk.contrl[3] = 0;
+	_GemParBlk.contrl[4] = 0;
+	_GemParBlk.intin[0] = handle;
+	_GemParBlk.intin[1] = field;
+	_crystal(&pb);
+	if (out1 != NULL)
+		*out1 = _GemParBlk.intout[1];
+	if (out2 != NULL)
+		*out2 = _GemParBlk.intout[2];
+	if (out3 != NULL)
+		*out3 = _GemParBlk.intout[3];
+	if (out4 != NULL)
+		*out4 = _GemParBlk.intout[4];
+	return _GemParBlk.intout[0];
+}
+#else
+#define wnd_get wind_get
+#endif
+
+
+static int xbra_unlink(int vec)
+{
+	char d3;
+	char d4;
+	char d5;
+	long *addr;
+	long *xbra;
+	
+	d3 = TRUE;
+	d4 = TRUE;
+	d5 = 0;
+	addr = (long *)Setexc(vec, (void (*)(void))-1);
+#if 0
+	xbra = addr - 3;
+#else
+	xbra = (long *)((long)addr - 12);
+#endif
+	do
+	{
+		if (xbra[0] == 0x58425241L) /* 'XBRA' */
+		{
+			if (xbra[1] == C_AVSV)
+			{
+				if (d5)
+					*addr = xbra[2];
+				else
+					Setexc(vec, (void (*)(void))xbra[2]);
+				d3 = FALSE;
+			} else
+			{
+#if 0
+				addr = xbra + 2;
+				xbra = (long *)(*addr) - 3;
+#else
+				addr = (long *)((long)xbra + 8);
+				xbra = (long *)(*addr - 12);
+#endif
+				d5++;
+			}
+		} else
+		{
+			d4 = FALSE;
+		}
+	} while (d3 && d4);
+	if (d3)
+		return FALSE;
+	return TRUE;
+}
+
+
+static int dd_getheader(int fd, struct dd_header *header)
+{
+	void *data;
+	int error = FALSE;
+	short hdrlen;
+	
+	data = malloc(2048);
+	if (data == NULL)
+	{
+		dd_reply(fd, DD_NAK);
+		Fclose(fd);
+		return FALSE;
+	}
+	if (Fread(fd, sizeof(header->hdrlen), &header->hdrlen) < (long)sizeof(header->hdrlen))
+		error = TRUE;
+	if (header->hdrlen < 9)
+		error = TRUE;
+	if (Fread(fd, 4, header->type) < 4)
+	{
+		error = TRUE;
+		header->type[0] = '\0';
+	} else
+	{
+		header->type[4] = '\0';
+	}
+	if (Fread(fd, sizeof(header->datasize), &header->datasize) < (long)sizeof(header->datasize))
+		error = TRUE;
+	header->obname = NULL;
+	header->filename = NULL;
+	if (!error)
+	{
+		hdrlen = header->hdrlen - 8;
+		while (hdrlen > 0)
+		{
+			long count = Fread(fd, hdrlen < 2048 ? hdrlen : 2048, data);
+			if (count < 1)
+				error = TRUE;
+			else
+				hdrlen -= count;
+			if (error)
+				break;
+		}
+	}
+	if (error || hdrlen > 0)
+	{
+		dd_reply(fd, DD_NAK);
+		Fclose(fd);
+		error_dragdrop();
+		return FALSE;
+	}
+	/*
+	 * BUG: obname/filename are not returned to caller,
+	 * and data is leaked
+	 */
+	return TRUE;
+}
+
+
+static int dd_reply(int fd, char ack)
+{
+	if (Fwrite(fd, 1, &ack) == 1)
+		return TRUE;
+	Fclose(fd);
+	error_dragdrop();
+	return FALSE;
+}
+
+
+static int what_izit(_WORD mox, _WORD moy, _WORD *owner)
+{
+	int type;
+	_WORD winid;
+	union {
+		_WORD kind;
+		struct {
+			_WORD hi;
+			_WORD lo;
+		} name;
+	} info;
+	int i;
+	_WORD dummy;
+	A_MAN *aman;
+	char *name;
+	void **pp;
+	
+	type = VA_OB_UNKNOWN;
+	*owner = -1;
+	startprog_path[0] = '\0';
+	winid = wind_find(mox, moy);
+	if (winid > 0)
+	{
+		for (i = 0; i < MAX_WINDS; i++)
+		{
+			if (windows[i].winid == winid)
+				*owner = windows[i].apid;
+		}
+		if (*owner == -1)
+		{
+			wind_get(winid, WF_OWNER, owner);
+			if (*owner != magxdesk)
+				*owner = -1;
+		}
+		if (*owner != -1)
+		{
+			type = VA_OB_WINDOW;
+			wnd_get(winid, WF_KIND, &info.kind, NULL, NULL, NULL);
+			if (info.kind & NAME)
+			{
+				if (get_cookie("AmAN", (void **)&aman))
+				{
+					wnd_get(winid, WF_NAME, &info.name.hi, &info.name.lo, NULL, NULL);
+					pp = (void **)&info.name;
+					name = *pp;
+					if (name != NULL)
+					{
+						if (*name == ' ')
+							name++;
+						strcpy(startprog_path, name);
+						if (startprog_path[strlen(startprog_path) - 1] == ' ')
+							startprog_path[strlen(startprog_path) - 1] = '\0';
+					}
+				} else
+				{
+					error_no_aman();
+					type = VA_OB_UNKNOWN;
+				}
+			}
+		}
+	}
+	
+	if (winid == 0)
+	{
+		OBJECT *tree;
+		_WORD obj;
+		ICONBLK *iconblk;
+		
+		wind_get(0, WF_NEWDESK, &info.name.hi, &info.name.lo, &dummy);
+		pp = (void **)&info.name;
+		tree = *pp;
+		if (tree != NULL)
+		{
+			obj = objc_find(tree, ROOT, MAX_DEPTH, mox, moy);
+			if (obj > 0)
+			{
+				if (tree[obj].ob_type == G_ICON || tree[obj].ob_type == G_CICON)
+				{
+					iconblk = tree[obj].ob_spec.iconblk;
+					strcpy(startprog_path, iconblk->ib_ptext);
+					i = iconblk->ib_char;
+					name = (char *)&i;
+					name++;
+					*owner = magxdesk;
+					if (name != NULL && *name != '\0') /* FIXME: cannot be NULL */
+					{
+						type = VA_OB_DRIVE;
+						sprintf(startprog_path, "%c:\\", *name);
+					} else
+					{
+						if (strcmp(startprog_path, "PAPIERKORB") == 0) /* FIXME: language dependant */
+							type = VA_OB_SHREDDER;
+						if (strcmp(startprog_path, "DRUCKER") == 0) /* FIXME: language dependant */
+						{
+							type = VA_OB_FILE;
+							strcpy(startprog_path, "U:\\DEV\\PRN");
+						}
+						if (type == VA_OB_UNKNOWN)
+						{
+							FILE *fp;
+
+							strcpy(startprog_name, "MAGX.INF");
+							if (shel_find(startprog_name) != 0 && (fp = fopen(startprog_name, "r")) != NULL)
+							{
+								i = 0;
+								while (!feof(fp))
+								{
+									fgets(startprog_name, 126, fp);
+									
+									if (strncmp(startprog_name, "#_DIC ", 6) == 0)
+										i++;
+									/*
+									 * for icontypes see https://github.com/th-otto/MagicMac/blob/951522e6c949672cae888ebaa3695ef7ed0e4eaf/apps/magxdesk.5/k.h
+									 */
+									if ((strncmp(startprog_name, "#_DIC 6 @ ", 10) == 0 ||
+										 strncmp(startprog_name, "#_DIC 7 @ ", 10) == 0 ||
+										 strncmp(startprog_name, "#_DIC 8 @ ", 10) == 0) &&
+										 i == obj)
+									{
+										name = strrchr(startprog_name, ' ');
+										if (name != NULL) /* FIXME: cannot be NULL */
+										{
+											if (startprog_name[strlen(startprog_name) - 1] == '\n')
+												startprog_name[strlen(startprog_name) - 1] = '\0';
+											name++;
+											strcpy(startprog_path, name);
+											type = VA_OB_FILE;
+										}
+									}
+									if (i >= obj)
+										break;
+								}
+								fclose(fp);
+							} else
+							{
+								error_magx_inf();
+							}
+							if (type == VA_OB_UNKNOWN && shel_find(startprog_path) != 0)
+								type = VA_OB_FILE;
+						}
+					}
+				}
+			} else
+			{
+				type = VA_OB_UNKNOWN;
+			}
+		}
+	}
+	
+	if (type == VA_OB_FILE)
+	{
+		if (Fattrib(startprog_path, 0, 0) & FA_SUBDIR)
+			type = VA_OB_FOLDER;
+	} else if (type != VA_OB_UNKNOWN)
+	{
+		if (startprog_path[1] != ':')
+		{
+			strcpy(startprog_path, "");
+		} else
+		{
+			name = strrchr(startprog_path, '\\');
+			if (name != NULL)
+				name[1] = '\0';
+			if (*owner == magxdesk)
+				type = VA_OB_FOLDER;
+		}
+	}
+	
+	if (type == VA_OB_FOLDER)
+	{
+		if (startprog_path[strlen(startprog_path) - 1] != '\\')
+			strcat(startprog_path, "\\");
+	}
+	
+	return type;
+}
+
+
+static void font_select(_WORD *message)
+{
+	long fontid;
+	fix31 fontsize;
+	_LONG ratio;
+	_WORD workin[11];
+	_WORD vdi_handle;
+	_WORD error;
+	_WORD check_boxes;
+	_WORD i;
+	FNT_DIALOG *dialog;
+	_WORD button;
+	_WORD apid;
+	
+	/*
+	 * FIXME: check whether fnts_* functions are available
+	 */
+	graf_mouse(BUSYBEE, NULL);
+	
+	fontid = message[4];
+	fontsize = (long)message[5] << 16;
+	ratio = 1L << 16;
+	for (i = 1; i < 10; i++)
+		workin[i] = 1;
+	workin[0] = Getrez() + 2; /* FIXME: use 1 for current resolution */
+	workin[10] = 2;
+	vdi_handle = graf_handle(&i, &i, &i, &i);
+	v_opnvwk(workin, &vdi_handle, workout);
+	error = 0;
+	vst_error(vdi_handle, 0, &error);
+	if (error != 0)
+		fontselect_error(error);
+	dialog = fnts_create(vdi_handle, 0, FNTS_ALL, FNTS_3D, "The quick brown fox jumps over the lazy dog.", NULL);
+	if (error != 0)
+		fontselect_error(error);
+	graf_mouse(ARROW, NULL);
+	
+	button = fnts_do(dialog, FNTS_SNAME | FNTS_SSTYLE | FNTS_SSIZE, fontid, fontsize, ratio, &check_boxes, &fontid, &fontsize, &ratio);
+	graf_mouse(BUSYBEE, NULL);
+	if (button == FNTS_OK)
+	{
+		message[4] = (_WORD)fontid;
+		message[5] = (_WORD)(fontsize >> 16);
+	}
+	apid = message[1];
+	message[0] = FONT_CHANGED;
+	message[1] = gl_apid;
+	message[2] = 0;
+	appl_write(apid, 16, message);
+	if (error != 0)
+		fontselect_error(error);
+	fnts_delete(dialog, vdi_handle);
+	graf_mouse(ARROW, NULL);
+	v_clsvwk(vdi_handle);
+	
+	/* mark message as handled */
+	message[0] = 0; /* FIXME: unnecessary */
+}
+
+
+static void x11f4e(char *names)
+{
+	char *end;
+	char *start;
+	long ret;
+	char buf[16];
+	
+	if (names != NULL)
+	{
+		strcpy(startprog_path, names);
+		strcat(startprog_path, " ");
+		start = startprog_path;
+		strcpy(startprog_name, "\xff-?cfq");
+		end = strchr(startprog_path, ' ');
+		while (end != NULL)
+		{
+			*end = '\0';
+			if (start[strlen(start) - 1] != '\\')
+			{
+				long filesize;
+
+				ret = Fopen(start, FO_READ);
+				filesize = ret; /* XXX to get registers right */
+				if (ret > 0)
+				{
+					short fd;
+
+					fd = (unsigned int)ret;
+					filesize = Fseek(0, fd, SEEK_END);
+					Fclose(fd);
+					ltoa(filesize, buf, 10);
+				} else
+				{
+					strcpy(buf, "1");
+				}
+				strcat(startprog_name, " ");
+				strcat(startprog_name, start);
+				strcat(startprog_name, " ");
+				strcat(startprog_name, buf);
+			} else
+			{
+				strcat(startprog_name, " ");
+				strcat(startprog_name, start);
+				strcat(startprog_name, " -1");
+			}
+			start = end + 1;
+			end = strchr(start, ' ');
+		}
+	}
+}
+
+
+static void fontselect_error(int code)
+{
+	(void)code;
 }
 
 
 void error_overflow(void)
 {
+	form_alert(1, "[3][AV-Server: Overflow!][Cancel]");
+}
+
+
+void error_dragdrop(void)
+{
+	form_alert(1, "[3][AV-Server: Drag&Drop-Error!][Ignore]");
+}
+
+
+void error_internal(void)
+{
+	form_alert(1, "[3][AV-Server: Internal error!][Ignore]");
 }
 
 
 void error_copy(void)
 {
+	form_alert(1, "[3][AV-Server: Can't start|MG-Copy!][Cancel]");
 }
 
 
-int xbra_unlink(int vec)
+void error_no_aman(void)
 {
-	(void)vec;
-	return FALSE;
-}
-
-short sp_offset;
-long install_aes_trap(void)
-{
-	return 0;
+	form_alert(1, "[3][AV-Server: A-MAN not installed.|Can't execute this function!][Cancel]");
 }
 
 
-void cycle_windows(void)
+void error_magx_inf(void)
 {
-}
-
-
-static void x11486(void)
-{
-}
-
-
-void x11f4e(char *names)
-{
-	(void)names;
-}
-
-
-int x11a12(_WORD mox, _WORD moy, _WORD *owner)
-{
-	(void)mox;
-	(void)moy;
-	(void)owner;
-	return 0;
+	form_alert(1, "[3][AV-Server: Can't|read MAGX.INF!][Cancel]");
 }

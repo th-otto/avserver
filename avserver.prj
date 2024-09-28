@@ -8,6 +8,10 @@ avserver.app
 pcstart0.s
 avserver.c
 
+aestrap.s
+wdialog.s
+
+cookie.c
 setter.c
 
 pcgemlib.lib

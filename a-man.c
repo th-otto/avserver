@@ -1,5 +1,6 @@
 #include <aes.h>
 #include <tos.h>
+#include "a-man.h"
 
 #define C_AmAN 0x416D414EL     /* 'AmAN' */
 #define _longframe *((short *)0x59e)
@@ -15,24 +16,6 @@ typedef struct {
 
 COOKIE *install_jar(long size);
 #define JARSIZE 10
-
-typedef struct
-{
-	long date;
-
-	short *dcolor_a;
-	short *dcolor_b;
-
-	short *currxywh;
-	short *kind;
-	short *owner;
-	char **name;
-	char **info;
-
-	unsigned char *menu_id;
-	OBJECT **menu_tree;
-	short *flags;
-} A_MAN;
 
 static long old_sp;
 long sp_offset;
