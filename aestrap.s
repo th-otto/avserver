@@ -45,7 +45,6 @@ aes_trap2:
 	jmp        (a0)
 
 	.bss
-sp_offset: .ds.w 1
+sp_offset: .ds.l 1 /* FIXME: unused; BUG: accessed as short */
 save_a0:   .ds.l 1
 
-unused: .ds.b 2

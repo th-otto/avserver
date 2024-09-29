@@ -9,9 +9,10 @@
 #include "a-man.h"
 
 char const sccs_id[] = "@(#)AV-Server " VERSION " (" DATE "), Copyright (c)1996-98 by A. Barton";
-static char const progname[] = "AVSERVER";
+static char const progname[] = "AVSERVER\0";
 /* WTF. Use Keytbl() instead */
-static char const keyboard_table[] = "\0\x17!\"\xdd$%&/()=?`^\x08\x09QWERTZUIOP\x9a+\x0d\0ASDFGHJKL\x99\x8e\0\0|YXCVBNM;:_\0\0\0 ";
+/* BUG: off by 1 when indexed by scancode */
+static char const keyboard_table[] = "\x17!\"\xdd$%&/()=?`^\x08\x09QWERTZUIOP\x9a+\x0d\0ASDFGHJKL\x99\x8e\0\0|YXCVBNM;:_\0\0\0 ";
 
 
 #define MAX_CLIENTS   32
@@ -408,8 +409,6 @@ static void av_protokoll(_WORD *message)
 	}
 	if (slot != -1)
 	{
-		const char *p;
-		
 		clients[slot].apid = message[1];
 		clients[slot].capabilities = message[3];
 		strcpy(clients[slot].name, name);
@@ -421,9 +420,8 @@ static void av_protokoll(_WORD *message)
 		message[4] = av_protokoll4;
 		message[5] = 0;
 		/* BUG: will crash with MP */
-		p = progname;
-		message[6] = (_WORD)((long)p >> 16);
-		message[7] = (_WORD)((unsigned int)(unsigned long)p) & 0xffffu; /* XXX */
+		message[6] = (_WORD)((long)progname >> 16);
+		message[7] = (_WORD)((unsigned int)(unsigned long)progname) & 0xffffu; /* XXX */
 		appl_write(apid, 16, message);
 	} else
 	{
@@ -645,7 +643,7 @@ static void av_sendkey(_WORD *message)
 			{
 				message[0] = AV_XWIND;
 				message[2] = 0;
-				/* WTF. Use keyboard table instead */
+				/* WTF. Keytbl() instead */
 				sprintf(startprog_path, "%c:\\", keyboard_table[scancode]);
 				message[3] = (_WORD)((long)startprog_path >> 16);
 				message[4] = (_WORD)((unsigned int)(unsigned long)startprog_path) & 0xffffu;
