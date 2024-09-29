@@ -15,8 +15,8 @@ static char const progname[] = "AVSERVER\0";
 static char const keyboard_table[] = "\x17!\"\xdd$%&/()=?`^\x08\x09QWERTZUIOP\x9a+\x0d\0ASDFGHJKL\x99\x8e\0\0|YXCVBNM;:_\0\0\0 ";
 
 
-#define MAX_CLIENTS   32
-#define MAX_WINDS     32
+#define MAX_CLIENTS   127
+#define MAX_WINDS     127
 #define MAX_PROGS     4
 
 /*
@@ -286,7 +286,7 @@ int main(void)
 			long fd;
 			
 			strcpy(filename, "U:\\PIPE\\DRAGDROP.AA");
-			filename[18] = message[7] & 0xff; /* XXX */
+			filename[18] = message[7] & 0xff;
 			filename[17] = ((unsigned short)message[7] & 0xff00) >> 8;
 			fd = Fopen(filename, FO_RW);
 			if (fd >= 0)
@@ -421,7 +421,7 @@ static void av_protokoll(_WORD *message)
 		message[5] = 0;
 		/* BUG: will crash with MP */
 		message[6] = (_WORD)((long)progname >> 16);
-		message[7] = (_WORD)((unsigned int)(unsigned long)progname) & 0xffffu; /* XXX */
+		message[7] = (_WORD)((unsigned int)(unsigned long)progname) & 0xffffu;
 		appl_write(apid, 16, message);
 	} else
 	{
@@ -491,6 +491,7 @@ static void av_server_info(_WORD *message)
 	message[7] = 0;
 	message[4] = (_WORD)((long)p >> 16);
 	message[5] = (_WORD)((unsigned int)(unsigned long)p) & 0xffffu;
+	/* XXX: registers loaded in different order */
 	appl_write(apid, 16, message);
 	/* mark message as handled */
 	message[0] = 0; /* FIXME: unnecessary */

@@ -1,5 +1,5 @@
-#define DATE     "Jan 29 1999"
-#define VERSION  "1.3"
+#define DATE     "Sep 13 1999"
+#define VERSION  "1.3-L"
 
 #ifndef _WORD
 #ifdef __PUREC__
