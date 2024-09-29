@@ -9,11 +9,11 @@ pcvstart.s
 avserver.c
 
 aestrap.s
+setter.c
 wdialog.s
 
 cookie.c
-setter.c
 
 pcgemlib.lib
 pctoslib.lib
-pcstdli3.lib
+pcstdlib.lib

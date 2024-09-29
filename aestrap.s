@@ -47,3 +47,5 @@ aes_trap2:
 	.bss
 sp_offset: .ds.w 1
 save_a0:   .ds.l 1
+
+unused: .ds.b 2

@@ -11,7 +11,7 @@
 char const sccs_id[] = "@(#)AV-Server " VERSION " (" DATE "), Copyright (c)1996-98 by A. Barton";
 static char const progname[] = "AVSERVER";
 /* WTF. Use Keytbl() instead */
-static char const keyboard_table[] = "\0\x17!\"\xdd$%&/()=?`^\x08\x09QWERTZUIOP\x94-\x0d\0ASDFGHJKL\x99\x8e\0\0|YXCVBNM;:_\0\0\0 ";
+static char const keyboard_table[] = "\0\x17!\"\xdd$%&/()=?`^\x08\x09QWERTZUIOP\x9a+\x0d\0ASDFGHJKL\x99\x8e\0\0|YXCVBNM;:_\0\0\0 ";
 
 
 #define MAX_CLIENTS   32
@@ -229,6 +229,7 @@ int main(void)
 		VA_PROT_STARTPROG |
 		VA_PROT_ACCWINDOPEN |
 		VA_PROT_ACCWINDCLOSED |
+		VA_PROT_STATUS |
 		VA_PROT_PATH_UPDATE |
 		VA_PROT_WHAT_IZIT |
 		VA_PROT_EXIT |
@@ -1263,7 +1264,7 @@ static int ap_dragdrop(int fd, _WORD mox, _WORD moy, _WORD winid, _WORD apid)
 
 	if (dd_reply(fd, DD_OK))
 	{
-		if (Fwrite(fd, 32, "ARGS\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0") != 32)
+		if (Fwrite(fd, 32, "ARGS\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0") != 32)
 		{
 			Fclose(fd);
 			error_dragdrop();
@@ -1642,7 +1643,7 @@ static int what_izit(_WORD mox, _WORD moy, _WORD *owner)
 					if (name != NULL && *name != '\0') /* FIXME: cannot be NULL */
 					{
 						type = VA_OB_DRIVE;
-						sprintf(startprog_path, "%c:\\", *name);
+						sprintf(startprog_path, "%c:\\\0", *name); /* FIXME: \0? */
 					} else
 					{
 						if (strcmp(startprog_path, "PAPIERKORB") == 0) /* FIXME: language dependant */

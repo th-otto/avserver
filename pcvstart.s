@@ -114,19 +114,19 @@ __data:
 * Global error variable
 
 errno:
-        .DS.W   0
+        .DS.W   1
 
 
 * Vector for atexit
 
 _AtExitVec:
-        .DS.L   0
+        .DS.L   1
 
 
 * Vector for file system deinitialization
 
 _FilSysVec:
-        .DS.L   0
+        .DS.L   1
 
 
 *>>>>>>> Code segment <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
