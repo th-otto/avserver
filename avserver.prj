@@ -5,7 +5,7 @@ avserver.app
 .C [-C- -M -P -G- -Z-]
 .L [-S=32768]
 =
-pcstart0.s
+pcvstart.s
 avserver.c
 
 aestrap.s
@@ -16,4 +16,4 @@ setter.c
 
 pcgemlib.lib
 pctoslib.lib
-pcstdli2.lib
+pcstdli3.lib

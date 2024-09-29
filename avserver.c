@@ -9,18 +9,25 @@
 #include "a-man.h"
 
 char const sccs_id[] = "@(#)AV-Server " VERSION " (" DATE "), Copyright (c)1996-98 by A. Barton";
-char const progname[] = "AVSERVER";
+static char const progname[] = "AVSERVER";
 /* WTF. Use Keytbl() instead */
-char const keyboard_table[] = "\0\x17!\"\xdd$%&/()=?`^\x08\x09QWERTZUIOP\x94-\x0d\0ASDFGHJKL\x99\x8e\0\0|YXCVBNM;:_\0\0\0 ";
+static char const keyboard_table[] = "\0\x17!\"\xdd$%&/()=?`^\x08\x09QWERTZUIOP\x94-\x0d\0ASDFGHJKL\x99\x8e\0\0|YXCVBNM;:_\0\0\0 ";
 
 
 #define MAX_CLIENTS   32
 #define MAX_WINDS     32
 #define MAX_PROGS     4
 
-extern short sp_offset;
-long install_aes_trap(void);
+/*
+ * in assembler code
+ */
+extern short sp_offset ASM_NAME("sp_offset"); /* FIXME: not used anywhere */
+long install_aes_trap(void); ASM_NAME("install_aes_trap");
 
+
+/*
+ * our structures
+ */
 #define MAX_APPNAME 8
 
 struct client {
@@ -49,23 +56,27 @@ struct avserver_info {
 	struct program *programs;
 };
 
-_WORD gl_apid;
-_WORD magxdesk;
-_WORD ap_dragdrop_id;
-_WORD av_protokoll3;
-_WORD av_protokoll4;
-_WORD workout[57];
-char startprog_path[1024];
-char startprog_name[1024];
-void *dd_data;
-struct client clients[MAX_CLIENTS];
-struct window windows[MAX_WINDS];
-struct program programs[MAX_PROGS];
-struct avserver_info avserver_info;
+_WORD gl_apid ASM_NAME("gl_apid");
+static _WORD magxdesk;
+_WORD ap_dragdrop_id ASM_NAME("ap_dragdrop_id");
+static _WORD av_protokoll3;
+static _WORD av_protokoll4;
+static _WORD workout[57]; /* FIXME: only used on font selector */
+static char startprog_path[1024];
+static char startprog_name[1024];
+static void *dd_data;
+static struct client clients[MAX_CLIENTS];
+static struct window windows[MAX_WINDS];
+static struct program programs[MAX_PROGS];
+static struct avserver_info avserver_info;
 
+
+/*
+ * forward declarations
+ */
 static void etv_term(void);
 static void check_apps(void);
-static void x11f4e(char *names);
+static void gen_mgcopy_cmdline(char *names);
 static int what_izit(_WORD mox, _WORD moy, _WORD *owner);
 
 
@@ -78,7 +89,6 @@ void error_no_aman(void);
 void error_magx_inf(void);
 
 static int xbra_unlink(int vec);
-
 static void cycle_windows(void);
 
 
@@ -158,6 +168,17 @@ _WORD fnts_delete(FNT_DIALOG *fnt_dialog, _WORD vdi_handle);
 _WORD fnts_open(FNT_DIALOG *fnt_dialog, _WORD button_flags, _WORD x, _WORD y, long id, fix31 pt, _LONG ratio);
 _WORD fnts_close(FNT_DIALOG *fnt_dialog, _WORD *x, _WORD *y);
 _WORD fnts_do(FNT_DIALOG *fnt_dialog, _WORD button_flags, _LONG id_in, _LONG pt_in, _LONG ratio_in, _WORD *check_boxes, _LONG *id, _LONG *pt, _LONG *ratio);
+
+/* vst_error return values */
+#undef NO_ERROR /* clashes with Win32 */
+#define NO_ERROR		0
+#define CHAR_NOT_FOUND	1
+#define FILE_READERR 	8
+#define FILE_OPENERR 	9
+#define BAD_FORMAT		10
+#define CACHE_FULL		11
+#define MISC_ERROR		(-1)
+
 #endif
 
 
@@ -703,7 +724,7 @@ static void av_drag_on_window(_WORD *message)
 		message[3] = 0;
 	} else
 	{
-		x11f4e(names);
+		gen_mgcopy_cmdline(names);
 		success = FALSE;
 		type = what_izit(mox, moy, &owner); /* FIXME: type not needed below */
 		switch (type)
@@ -1081,7 +1102,7 @@ static void av_copyfile(_WORD *message)
 		names = *pp;
 	else
 		names = NULL;
-	x11f4e(names);
+	gen_mgcopy_cmdline(names);
 	pp = (char **)&message[5];
 	if (pp != NULL) /* FIXME: cannot be NULL */
 		names = *pp;
@@ -1131,7 +1152,7 @@ static void av_delfile(_WORD *message)
 		names = *pp;
 	else
 		names = NULL;
-	x11f4e(names);
+	gen_mgcopy_cmdline(names);
 	
 	startprog_name[2] = 'D';
 	message[0] = VA_FILECOPIED; /* BUG: should be VA_FILEDELETED */
@@ -1408,15 +1429,15 @@ static int wnd_get(_WORD handle, _WORD field, _WORD *out1, _WORD *out2, _WORD *o
 
 static int xbra_unlink(int vec)
 {
-	char d3;
-	char d4;
-	char d5;
+	char cont;
+	char xbra_ok;
+	char slot;
 	long *addr;
 	long *xbra;
 	
-	d3 = TRUE;
-	d4 = TRUE;
-	d5 = 0;
+	cont = TRUE;
+	xbra_ok = TRUE;
+	slot = 0;
 	addr = (long *)Setexc(vec, (void (*)(void))-1);
 #if 0
 	xbra = addr - 3;
@@ -1429,11 +1450,21 @@ static int xbra_unlink(int vec)
 		{
 			if (xbra[1] == C_AVSV)
 			{
-				if (d5)
+				if (slot != 0)
+				{
+					/*
+					 * there was another TSR in the chain, replace
+					 * its previous vector
+					 */
 					*addr = xbra[2];
-				else
+				} else
+				{
+					/*
+					 * no other TSR, restore system vector
+					 */
 					Setexc(vec, (void (*)(void))xbra[2]);
-				d3 = FALSE;
+				}
+				cont = FALSE;
 			} else
 			{
 #if 0
@@ -1443,14 +1474,14 @@ static int xbra_unlink(int vec)
 				addr = (long *)((long)xbra + 8);
 				xbra = (long *)(*addr - 12);
 #endif
-				d5++;
+				slot++;
 			}
 		} else
 		{
-			d4 = FALSE;
+			xbra_ok = FALSE;
 		}
-	} while (d3 && d4);
-	if (d3)
+	} while (cont && xbra_ok);
+	if (cont)
 		return FALSE;
 	return TRUE;
 }
@@ -1762,7 +1793,7 @@ static void font_select(_WORD *message)
 }
 
 
-static void x11f4e(char *names)
+static void gen_mgcopy_cmdline(char *names)
 {
 	char *end;
 	char *start;
@@ -1816,7 +1847,33 @@ static void x11f4e(char *names)
 
 static void fontselect_error(int code)
 {
-	(void)code;
+	switch (code)
+	{
+	case CHAR_NOT_FOUND:
+		/* BUG: too many arguments for format */
+		sprintf(startprog_path, "[3][AV-Server: VDI Scaler Error:|Character not defined!][Ignore]", code);
+		break;
+	case FILE_READERR:
+		/* BUG: too many arguments for format */
+		sprintf(startprog_path, "[3][AV-Server: VDI Scaler Error:|Can't read font!][Ignore]", code);
+		break;
+	case FILE_OPENERR:
+		/* BUG: too many arguments for format */
+		sprintf(startprog_path, "[3][AV-Server: VDI Scaler Error:|Can't open font!][Ignore]", code);
+		break;
+	case BAD_FORMAT:
+		/* BUG: too many arguments for format */
+		sprintf(startprog_path, "[3][AV-Server: VDI Scaler Error:|Invalid file format!][Ignore]", code);
+		break;
+	case CACHE_FULL:
+		/* BUG: too many arguments for format */
+		sprintf(startprog_path, "[3][AV-Server: VDI Scaler Error:|No more memory/cache free!][Ignore]", code);
+		break;
+	default:
+		sprintf(startprog_path, "[3][AV-Server: VDI Scaler Error:|Error code %d!][Ignore]", code);
+		break;
+	}
+	form_alert(1, startprog_path);
 }
 
 

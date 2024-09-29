@@ -27,6 +27,13 @@
 #define SuperToUser(sp) Super(sp)
 #endif
 
+#ifdef __GNUC__
+#  define ASM_NAME(x) __asm__(x)
+#else
+#  define ASM_NAME(x)
+#endif
+
+
 #define C_AmAN 0x416D414EL     /* 'AmAN' */
 #define C_AVSV 0x41565356L     /* 'AVSV' */
 #define _longframe *((short *)0x59e)

@@ -184,7 +184,7 @@ wdlg_get_handle:
 wdlg_set_edit:
 	move.l     a2,-(a7)
 	lea.l      _GemParBlk+contrl,a2
-	move.w     165,a_opcode(a2)
+	move.w     #165,a_opcode(a2)
 	move.w     #2,a_nintin(a2)
 	move.w     #1,a_naddrin(a2)
 	lea.l      _GemParBlk+intin,a2
@@ -201,7 +201,7 @@ wdlg_set_edit:
 wdlg_set_tree:
 	move.l     a2,-(a7)
 	lea.l      _GemParBlk+contrl,a2
-	move.w     165,(a2)
+	move.w     #165,(a2)
 	move.w     #1,a_nintin(a2)
 	move.w     #2,a_naddrin(a2)
 	lea.l      _GemParBlk+intin,a2
@@ -218,7 +218,7 @@ wdlg_set_tree:
 wdlg_set_size:
 	move.l     a2,-(a7)
 	lea.l      _GemParBlk+contrl,a2
-	move.w     165,a_opcode(a2)
+	move.w     #165,a_opcode(a2)
 	move.w     #1,a_nintin(a2)
 	move.w     #2,a_naddrin(a2)
 	lea.l      _GemParBlk+intin,a2
